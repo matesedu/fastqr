@@ -1,0 +1,12 @@
+[package]
+name = "fastqr-image"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+fastqr-core = { path = "../fastqr_core" }
+image.workspace = true
+smallvec.workspace = true

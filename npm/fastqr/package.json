@@ -1,0 +1,44 @@
+{
+  "name": "fastqr",
+  "version": "0.1.0",
+  "description": "Rust-powered fastqr toolkit for Node.js and the browser",
+  "license": "GPL-3.0-only",
+  "files": [
+    "browser.d.ts",
+    "browser.js",
+    "node.js",
+    "node.d.ts",
+    "native",
+    "scripts",
+    "wasm"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./node.d.ts",
+      "import": "./node.js",
+      "default": "./node.js"
+    },
+    "./node": {
+      "types": "./node.d.ts",
+      "import": "./node.js",
+      "default": "./node.js"
+    },
+    "./browser": {
+      "types": "./browser.d.ts",
+      "import": "./browser.js",
+      "default": "./browser.js"
+    }
+  },
+  "scripts": {
+    "task:fmt": "vp fmt",
+    "task:build": "vp run build",
+    "task:build-node": "vp run build-node",
+    "task:build-browser": "vp run build-browser",
+    "task:check": "vp run check"
+  },
+  "devDependencies": {
+    "vite-plus": "latest"
+  }
+}

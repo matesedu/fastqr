@@ -1,0 +1,24 @@
+{
+  "name": "@fastqr/playground",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "task:fmt": "vp fmt",
+    "task:dev": "vp run dev",
+    "task:build": "vp run build",
+    "task:preview": "vp run preview",
+    "task:check": "vp run check"
+  },
+  "dependencies": {
+    "@fastqr/vue": "workspace:*",
+    "fastqr": "workspace:*",
+    "vue": "^3.5.20"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "typescript": "^5.9.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite-plus": "latest"
+  }
+}

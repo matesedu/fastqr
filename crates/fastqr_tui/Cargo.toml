@@ -1,0 +1,16 @@
+[package]
+name = "fastqr-tui"
+autobins = false
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "fastqr"
+path = "src/main.rs"
+
+[dependencies]
+fastqr-core = { path = "../fastqr_core" }
+fastqr-image = { path = "../fastqr_image" }

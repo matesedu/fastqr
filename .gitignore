@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# logs
+*.log
+
+# JavaScript / Vite+
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Rust
+/target/
+**/target/
+
+# generated native / wasm artifacts
+/crates/fastqr_napi/*.node
+/crates/fastqr_wasm/pkg/
+/npm/fastqr/native/
+/npm/fastqr/wasm/

@@ -1,0 +1,73 @@
+:root {
+  color-scheme: light;
+  font-family: "Bricolage Grotesque", "Avenir Next", "Segoe UI Variable", sans-serif;
+  font-synthesis: none;
+  line-height: 1.5;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  --page-ink: #16212f;
+  --page-muted: #5d6b79;
+  --page-line: rgba(22, 33, 47, 0.12);
+  --page-panel: rgba(255, 251, 245, 0.76);
+  --page-panel-strong: rgba(255, 247, 236, 0.94);
+  --page-bg: #fbf4e9;
+  --page-accent: #ff7b38;
+  --page-accent-strong: #eb5b21;
+  --page-cool: #0f8c8d;
+  --page-shadow: 0 20px 60px rgba(48, 38, 22, 0.12);
+  --page-panel-radius: 28px;
+  --page-control-radius: 18px;
+  --page-stage-radius: 24px;
+  --page-surface: rgba(255, 255, 255, 0.78);
+  --page-surface-soft: rgba(255, 255, 255, 0.72);
+  --page-surface-strong: rgba(255, 247, 236, 0.94);
+  --page-border-soft: rgba(22, 33, 47, 0.08);
+  --page-border-strong: rgba(22, 33, 47, 0.14);
+  --page-accent-border: rgba(255, 123, 56, 0.24);
+  --page-accent-start: #ff9452;
+  --page-accent-end: #ff6631;
+  --page-danger: #b53c14;
+  --page-code-bg: #152030;
+  --page-code-fg: #d6ebff;
+  --page-ready-bg: rgba(15, 140, 141, 0.12);
+  --page-waiting-bg: rgba(255, 123, 56, 0.12);
+  --page-preview-bg: linear-gradient(180deg, #fef7eb 0%, #f8fbfd 100%);
+  --page-video-bg: linear-gradient(135deg, #e7ebf0 0%, #f9fbfc 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 174, 111, 0.42), transparent 28%),
+    radial-gradient(circle at top right, rgba(68, 174, 174, 0.24), transparent 24%),
+    linear-gradient(160deg, #f7efe2 0%, #fffaf2 48%, #eef5f2 100%);
+  color: var(--page-ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+code,
+pre {
+  font-family: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
+}

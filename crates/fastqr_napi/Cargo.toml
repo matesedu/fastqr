@@ -1,0 +1,19 @@
+[package]
+name = "fastqr-napi"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+fastqr-core = { path = "../fastqr_core" }
+fastqr-image = { path = "../fastqr_image" }
+napi.workspace = true
+napi-derive.workspace = true
+
+[build-dependencies]
+napi-build.workspace = true

@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: 22
+          cache: true
+          run-install: |
+            args: ["--frozen-lockfile"]
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
+          rustup target add wasm32-unknown-unknown
+
+      - name: Install WebAssembly linker
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes lld
+
+      - name: Run workspace CI
+        run: vp run ci

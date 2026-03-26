@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fastqr TypeScript Example</title>
+  </head>
+  <body>
+    <main class="example-shell">
+      <section class="example-card">
+        <p class="eyebrow">TypeScript Example</p>
+        <h1>Minimal browser render.</h1>
+        <textarea id="payload" spellcheck="false">https://github.com/mates-inc/fastqr</textarea>
+        <div class="control-row">
+          <label>
+            <span>ECC</span>
+            <select id="ecc">
+              <option value="L">L</option>
+              <option value="M" selected>M</option>
+              <option value="Q">Q</option>
+              <option value="H">H</option>
+            </select>
+          </label>
+          <label>
+            <span>Scale</span>
+            <input id="scale" type="number" min="1" max="24" value="10" />
+          </label>
+        </div>
+        <p id="meta"></p>
+      </section>
+
+      <section class="example-card">
+        <canvas id="canvas"></canvas>
+        <pre id="svg"></pre>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

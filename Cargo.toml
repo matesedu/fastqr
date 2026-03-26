@@ -1,0 +1,50 @@
+[workspace]
+members = [
+  "crates/fastqr_core",
+  "crates/fastqr_image",
+  "crates/fastqr_tui",
+  "crates/fastqr_wasm",
+  "crates/fastqr_napi",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "GPL-3.0-only"
+repository = "https://github.com/mates-inc/fastqr"
+rust-version = "1.93"
+version = "0.1.0"
+
+[workspace.dependencies]
+compact_str = "0.9.0"
+image = { version = "0.25.8", default-features = false, features = ["jpeg", "png", "webp"] }
+js-sys = "0.3.82"
+napi = { version = "3.4.0", default-features = false, features = ["compat-mode"] }
+napi-build = "2.3.1"
+napi-derive = "3.3.0"
+smallvec = { version = "1.15.1", features = ["const_generics", "const_new"] }
+wasm-bindgen = "0.2.105"
+web-sys = { version = "0.3.82", features = [
+  "CanvasRenderingContext2d",
+  "Document",
+  "HtmlCanvasElement",
+  "HtmlVideoElement",
+  "ImageData",
+  "MediaDevices",
+  "MediaStream",
+  "MediaStreamConstraints",
+  "Navigator",
+  "Window",
+] }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
+panic = "abort"
+strip = "symbols"
+
+[profile.bench]
+codegen-units = 1
+lto = "fat"
+opt-level = 3

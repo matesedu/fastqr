@@ -1,0 +1,11 @@
+[package]
+name = "fastqr-example-rust"
+edition = "2024"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+fastqr-core = { path = "../../crates/fastqr_core" }
+fastqr-image = { path = "../../crates/fastqr_image" }
+
+[workspace]

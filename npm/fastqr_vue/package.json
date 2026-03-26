@@ -1,0 +1,38 @@
+{
+  "name": "@fastqr/vue",
+  "version": "0.1.0",
+  "description": "Vue composables for fastqr browser workflows",
+  "license": "GPL-3.0-only",
+  "files": [
+    "README.md",
+    "dist",
+    "src",
+    "tsconfig.json",
+    "vite.config.ts"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "task:fmt": "vp fmt",
+    "task:build": "vp run build",
+    "task:check": "vp run check"
+  },
+  "dependencies": {
+    "fastqr": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite-plus": "latest"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
+  }
+}

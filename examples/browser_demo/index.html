@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fastqr Browser Demo</title>
+    <script type="module" src="/src/main.ts"></script>
+    <style>
+      :root {
+        --paper: #f8f3ea;
+        --ink: #132238;
+        --accent: #d3622b;
+        --panel: #fffaf0;
+        --line: #d9ccb7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "IBM Plex Sans", "Helvetica Neue", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, #f7d07a 0, transparent 30%),
+          linear-gradient(135deg, #ece7dd 0%, var(--paper) 45%, #efe5d5 100%);
+      }
+
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 32px 20px 56px;
+        display: grid;
+        gap: 24px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 12px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2.2rem, 5vw, 4.4rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+
+      p {
+        margin: 0;
+        max-width: 60ch;
+        line-height: 1.6;
+      }
+
+      .grid {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      }
+
+      .panel {
+        background: color-mix(in srgb, var(--panel) 88%, white);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 20px;
+        box-shadow: 0 16px 40px rgba(19, 34, 56, 0.09);
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        font-weight: 600;
+      }
+
+      input,
+      button {
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        padding: 12px 14px;
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        background: var(--accent);
+        color: white;
+        border-color: transparent;
+      }
+
+      canvas,
+      video {
+        width: 100%;
+        border-radius: 22px;
+        background: white;
+        border: 1px solid var(--line);
+      }
+
+      .result {
+        min-height: 1.5em;
+        font-family: "IBM Plex Mono", monospace;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>fastqr</h1>
+        <p>
+          Rust core, wasm bridge, canvas rendering, and live media stream decoding in a small
+          browser harness.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <div class="controls">
+            <label>
+              Text
+              <input id="text-input" value="fastqr browser demo" />
+            </label>
+            <button id="render-button">Render QR</button>
+            <canvas id="qr-canvas" width="256" height="256"></canvas>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="controls">
+            <button id="camera-button">Start Camera Scan</button>
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="scratch" hidden></canvas>
+            <div class="result" id="scan-result"></div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
