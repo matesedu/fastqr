@@ -3,7 +3,7 @@ export interface BrowserDecodedQr {
   errorCorrection: string;
   mask: number;
   bytes: Uint8Array;
-  text: string;
+  text: string | null;
 }
 
 export interface BrowserQrCode {

@@ -86,7 +86,7 @@ impl OutputFormat {
         match value.to_ascii_lowercase().as_str() {
             "png" => Ok(Self::Png),
             "jpg" | "jpeg" => Ok(Self::Jpeg),
-            "webp" | "wep" => Ok(Self::WebP),
+            "webp" => Ok(Self::WebP),
             "svg" => Ok(Self::Svg),
             _ => Err(CliError::usage(format!(
                 "unknown output format `{value}`\n\n{}",
@@ -350,7 +350,7 @@ fn infer_output_format(path: &str) -> Option<OutputFormat> {
     match extension.to_ascii_lowercase().as_str() {
         "png" => Some(OutputFormat::Png),
         "jpg" | "jpeg" => Some(OutputFormat::Jpeg),
-        "webp" | "wep" => Some(OutputFormat::WebP),
+        "webp" => Some(OutputFormat::WebP),
         "svg" => Some(OutputFormat::Svg),
         _ => None,
     }
@@ -411,7 +411,13 @@ mod tests {
         assert_eq!(infer_output_format("code.png"), Some(OutputFormat::Png));
         assert_eq!(infer_output_format("code.webp"), Some(OutputFormat::WebP));
         assert_eq!(infer_output_format("code.svg"), Some(OutputFormat::Svg));
+        assert_eq!(infer_output_format("code.wep"), None);
         assert_eq!(infer_output_format("code.unknown"), None);
+    }
+
+    #[test]
+    fn rejects_wep_output_format_alias() {
+        assert!(OutputFormat::from_str("wep").is_err());
     }
 
     #[test]

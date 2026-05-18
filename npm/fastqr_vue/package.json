@@ -2,7 +2,23 @@
   "name": "@fastqr/vue",
   "version": "0.1.0",
   "description": "Vue composables for fastqr browser workflows",
+  "keywords": [
+    "composables",
+    "qr",
+    "qrcode",
+    "vue",
+    "wasm"
+  ],
+  "homepage": "https://github.com/mates-dev/fastqr#readme",
+  "bugs": {
+    "url": "https://github.com/mates-dev/fastqr/issues"
+  },
   "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mates-dev/fastqr.git",
+    "directory": "npm/fastqr_vue"
+  },
   "files": [
     "README.md",
     "dist",
@@ -18,6 +34,9 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "task:fmt": "vp fmt",

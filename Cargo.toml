@@ -11,7 +11,7 @@ resolver = "2"
 [workspace.package]
 edition = "2024"
 license = "GPL-3.0-only"
-repository = "https://github.com/mates-inc/fastqr"
+repository = "https://github.com/mates-dev/fastqr"
 rust-version = "1.93"
 version = "0.1.0"
 

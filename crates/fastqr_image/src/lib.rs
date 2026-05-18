@@ -61,6 +61,7 @@ impl Default for DecodeOptions {
 pub enum RasterError {
     Image(image::ImageError),
     InvalidBuffer,
+    InvalidDimensions,
     MissingExtension(PathBuf),
     Qr(QrError),
     Detector(&'static str),
@@ -71,6 +72,7 @@ impl fmt::Display for RasterError {
         match self {
             Self::Image(error) => write!(f, "{error}"),
             Self::InvalidBuffer => f.write_str("invalid image buffer dimensions"),
+            Self::InvalidDimensions => f.write_str("invalid or unsupported image dimensions"),
             Self::MissingExtension(path) => {
                 write!(
                     f,

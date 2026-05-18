@@ -115,7 +115,7 @@ export function useFastqrCamera(options: UseFastqrCameraOptions = {}) {
 
     try {
       const decoded = decodeVideoFrame(video.value, scratchCanvas.value);
-      if (decoded.text && decoded.text !== cameraText.value) {
+      if (decoded.text != null && decoded.text !== cameraText.value) {
         cameraText.value = decoded.text;
         cameraLabel.value = `Camera lock: v${decoded.version} / ${decoded.errorCorrection} / mask ${decoded.mask}`;
       }
@@ -143,8 +143,7 @@ function isReady(ready: MaybeRefOrGetter<boolean> | undefined) {
 }
 
 function stopTracks(stream: MediaStream) {
-  const tracks = stream.getTracks();
-  for (let index = 0; index < tracks.length; index += 1) {
-    tracks[index].stop();
+  for (const track of stream.getTracks()) {
+    track.stop();
   }
 }

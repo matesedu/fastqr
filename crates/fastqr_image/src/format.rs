@@ -19,7 +19,30 @@ pub(crate) fn infer_format(path: &Path) -> Result<RasterFormat, RasterError> {
     match extension.to_ascii_lowercase().as_str() {
         "png" => Ok(RasterFormat::Png),
         "jpg" | "jpeg" => Ok(RasterFormat::Jpeg),
-        "webp" | "wep" => Ok(RasterFormat::WebP),
+        "webp" => Ok(RasterFormat::WebP),
         _ => Err(RasterError::MissingExtension(path.to_path_buf())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use crate::{RasterError, RasterFormat, format::infer_format};
+
+    #[test]
+    fn infers_webp_format_from_extension() {
+        assert_eq!(
+            infer_format(Path::new("code.webp")).expect("infers webp"),
+            RasterFormat::WebP
+        );
+    }
+
+    #[test]
+    fn rejects_wep_extension() {
+        assert!(matches!(
+            infer_format(Path::new("code.wep")),
+            Err(RasterError::MissingExtension(path)) if path == Path::new("code.wep")
+        ));
     }
 }
