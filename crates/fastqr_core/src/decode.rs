@@ -34,7 +34,7 @@ pub fn decode_modules(modules: &BitGrid) -> Result<DecodedQr, QrError> {
 }
 
 fn version_from_size(size: usize) -> Result<Version, QrError> {
-    if size < 21 || !(size - 17).is_multiple_of(4) {
+    if !(21..=177).contains(&size) || !(size - 17).is_multiple_of(4) {
         return Err(QrError::InvalidMatrixSize(size));
     }
     Version::new(((size - 17) / 4) as u8)
@@ -443,5 +443,30 @@ impl<'a> BitReader<'a> {
             1..=9 => 8,
             _ => 16,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{BitGrid, QrError};
+
+    use super::decode_modules;
+
+    #[test]
+    fn rejects_matrix_sizes_above_qr_version_40() {
+        let oversized = BitGrid::new(181);
+        assert_eq!(
+            decode_modules(&oversized),
+            Err(QrError::InvalidMatrixSize(181)),
+        );
+    }
+
+    #[test]
+    fn rejects_oversized_congruent_matrix_without_version_wrap() {
+        let oversized = BitGrid::new(1045);
+        assert_eq!(
+            decode_modules(&oversized),
+            Err(QrError::InvalidMatrixSize(1045)),
+        );
     }
 }
