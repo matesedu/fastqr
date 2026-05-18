@@ -94,7 +94,7 @@ export function useFastqrDecode(options: UseFastqrDecodeOptions = {}) {
     decodeHex.value = bytesToHex(decoded.bytes);
     decodeLabel.value = label;
     decodeMeta.value = `v${decoded.version} / ${decoded.errorCorrection} / mask ${decoded.mask}`;
-    decodeText.value = decoded.text;
+    decodeText.value = decoded.text ?? "";
   }
 
   return {
