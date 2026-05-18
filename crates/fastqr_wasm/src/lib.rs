@@ -1,7 +1,7 @@
-use fastqr_core::{EncodeOptions, ErrorCorrectionLevel, QrCode, encode_text};
-use fastqr_image::{DecodeOptions, RenderOptions, decode_rgba, render_to_rgba};
+use fastqr_core::{encode_text, EncodeOptions, ErrorCorrectionLevel, QrCode};
+use fastqr_image::{decode_rgba, render_to_rgba, DecodeOptions, RenderOptions};
 use js_sys::{Object, Reflect, Uint8Array};
-use wasm_bindgen::{Clamped, JsCast, JsValue, prelude::wasm_bindgen};
+use wasm_bindgen::{prelude::wasm_bindgen, Clamped, JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, HtmlVideoElement, ImageData};
 
 #[wasm_bindgen]
@@ -184,12 +184,12 @@ fn decoded_to_js(decoded: fastqr_core::DecodedQr) -> Result<JsValue, JsValue> {
         &JsValue::from_str("bytes"),
         &Uint8Array::from(decoded.bytes.as_ref()),
     )?;
-    let text = decoded.text.map(String::from).unwrap_or_default();
-    Reflect::set(
-        &object,
-        &JsValue::from_str("text"),
-        &JsValue::from_str(&text),
-    )?;
+    let text = decoded
+        .text
+        .as_deref()
+        .map(JsValue::from_str)
+        .unwrap_or(JsValue::NULL);
+    Reflect::set(&object, &JsValue::from_str("text"), &text)?;
     Ok(object.into())
 }
 
