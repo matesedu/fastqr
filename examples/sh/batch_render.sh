@@ -7,7 +7,7 @@ mkdir -p "$output_dir"
 index=0
 for payload in \
   "https://github.com/mates-inc/fastqr" \
-  "WIFI:T:WPA;S:fastqr-lab;P:correct-horse-battery-staple;;" \
+  "WIFI:T:WPA;S:fastqr-lab;P:example-password-do-not-use;;" \
   "BEGIN:VCARD
 VERSION:3.0
 FN:fastqr Batch
