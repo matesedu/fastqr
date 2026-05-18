@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "../../..");
+const packageDir = resolve(rootDir, "npm/fastqr");
 const crateDir = resolve(rootDir, "crates/fastqr_wasm");
 const outDir = resolve(rootDir, "npm/fastqr/wasm");
 const crateOutDir = resolve(crateDir, "npm/fastqr/wasm");
@@ -72,3 +73,10 @@ run(
     shell: process.platform === "win32",
   },
 );
+
+rmSync(resolve(outDir, ".gitignore"), { force: true });
+run("node", ["./scripts/check-package-artifacts.mjs", "--browser"], {
+  cwd: packageDir,
+  stdio: "inherit",
+  shell: process.platform === "win32",
+});

@@ -23,11 +23,13 @@ export default defineConfig({
   run: {
     tasks: {
       check: {
-        command: "vp check",
+        command:
+          "vp check README.md browser.d.ts browser.js node.d.ts node.js package.json scripts/**/*.mjs",
         input: packageInputs,
       },
       fmt: {
-        command: "vp check --fix",
+        command:
+          "vp check --fix README.md browser.d.ts browser.js node.d.ts node.js package.json scripts/**/*.mjs",
         input: packageInputs,
       },
       "build-node": {
