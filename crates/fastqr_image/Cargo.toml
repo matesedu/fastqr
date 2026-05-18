@@ -1,5 +1,6 @@
 [package]
 name = "fastqr-image"
+description = "Raster rendering and image decoding support for fastqr QR codes"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -7,6 +8,6 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
-fastqr-core = { path = "../fastqr_core" }
+fastqr-core = { path = "../fastqr_core", version = "0.1.0" }
 image.workspace = true
 smallvec.workspace = true

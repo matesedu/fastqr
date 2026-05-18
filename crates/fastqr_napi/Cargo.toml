@@ -1,5 +1,6 @@
 [package]
 name = "fastqr-napi"
+description = "N-API bindings for fastqr Node.js QR workflows"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -10,8 +11,8 @@ version.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-fastqr-core = { path = "../fastqr_core" }
-fastqr-image = { path = "../fastqr_image" }
+fastqr-core = { path = "../fastqr_core", version = "0.1.0" }
+fastqr-image = { path = "../fastqr_image", version = "0.1.0" }
 napi.workspace = true
 napi-derive.workspace = true
 
