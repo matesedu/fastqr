@@ -231,10 +231,13 @@ fn deinterleave_and_verify(
         } else {
             &block[data_len..data_len + ecc_len]
         };
-        if !reed_solomon::check_segments(&block[..data_len], ecc_slice, ecc_len) {
+        let mut corrected = Vec::with_capacity(data_len + ecc_len);
+        corrected.extend_from_slice(&block[..data_len]);
+        corrected.extend_from_slice(ecc_slice);
+        if !reed_solomon::correct(&mut corrected, ecc_len) {
             return Err(QrError::Checksum);
         }
-        data.extend_from_slice(&block[..data_len]);
+        data.extend_from_slice(&corrected[..data_len]);
     }
 
     Ok(data)
@@ -448,9 +451,69 @@ impl<'a> BitReader<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BitGrid, QrError};
+    use crate::{
+        BitGrid, EncodeOptions, ErrorCorrectionLevel, MaskPattern, QrError, Version, encode_text,
+        tables::num_data_codewords,
+    };
 
-    use super::decode_modules;
+    use super::{build_function_modules, decode_modules, decode_payload};
+
+    fn version_one_options(error_correction: ErrorCorrectionLevel) -> EncodeOptions {
+        EncodeOptions {
+            min_version: Version::MIN,
+            max_version: Version::MIN,
+            min_error_correction: error_correction,
+            boost_error_correction: false,
+            mask: Some(MaskPattern::new(0).expect("valid mask")),
+        }
+    }
+
+    fn fixed_version_options(
+        version: Version,
+        error_correction: ErrorCorrectionLevel,
+    ) -> EncodeOptions {
+        EncodeOptions {
+            min_version: version,
+            max_version: version,
+            min_error_correction: error_correction,
+            boost_error_correction: false,
+            mask: Some(MaskPattern::new(0).expect("valid mask")),
+        }
+    }
+
+    fn flip_codeword_bit(modules: &mut BitGrid, version: Version, codeword: usize, bit: usize) {
+        let functions = build_function_modules(version);
+        let size = modules.size();
+        let target_bit = codeword * 8 + bit;
+        let mut bit_index = 0_usize;
+        let mut right = size as isize - 1;
+        while right >= 1 {
+            if right == 6 {
+                right = 5;
+            }
+            for vertical in 0..size {
+                for delta in 0..2 {
+                    let x = (right - delta) as usize;
+                    let upward = ((right + 1) & 2) == 0;
+                    let y = if upward {
+                        size - 1 - vertical
+                    } else {
+                        vertical
+                    };
+                    if functions.get(x, y) {
+                        continue;
+                    }
+                    if bit_index == target_bit {
+                        modules.invert(x, y);
+                        return;
+                    }
+                    bit_index += 1;
+                }
+            }
+            right -= 2;
+        }
+        panic!("codeword bit {target_bit} is outside the matrix payload");
+    }
 
     #[test]
     fn rejects_matrix_sizes_above_qr_version_40() {
@@ -468,5 +531,107 @@ mod tests {
             decode_modules(&oversized),
             Err(QrError::InvalidMatrixSize(1045)),
         );
+    }
+
+    #[test]
+    fn rejects_matrix_sizes_below_qr_version_1() {
+        let undersized = BitGrid::new(20);
+        assert_eq!(
+            decode_modules(&undersized),
+            Err(QrError::InvalidMatrixSize(20)),
+        );
+    }
+
+    #[test]
+    fn rejects_malformed_format_information() {
+        let matrix = BitGrid::new(Version::MIN.size());
+        assert_eq!(
+            decode_modules(&matrix),
+            Err(QrError::InvalidFormatInformation),
+        );
+    }
+
+    #[test]
+    fn rejects_unsupported_payload_mode() {
+        assert_eq!(
+            decode_payload(&[0b0011_0000], Version::MIN),
+            Err(QrError::UnsupportedMode(0x3)),
+        );
+    }
+
+    #[test]
+    fn rejects_truncated_byte_payload() {
+        assert_eq!(
+            decode_payload(&[0x40, 0x10], Version::MIN),
+            Err(QrError::MissingTerminator),
+        );
+    }
+
+    #[test]
+    fn rejects_payload_values_that_fail_mode_checksum() {
+        assert_eq!(
+            decode_payload(&[0x10, 0x0F, 0xE8], Version::MIN),
+            Err(QrError::Checksum),
+        );
+    }
+
+    #[test]
+    fn rejects_codeword_damage_beyond_error_correction_capacity() {
+        let code =
+            encode_text("HELLO", version_one_options(ErrorCorrectionLevel::Low)).expect("encodes");
+        let mut modules = code.modules().clone();
+
+        for codeword in 0..4 {
+            flip_codeword_bit(&mut modules, code.version(), codeword, 0);
+        }
+
+        assert_eq!(decode_modules(&modules), Err(QrError::Checksum));
+    }
+
+    #[test]
+    fn decodes_with_correctable_data_codeword_damage() {
+        let code =
+            encode_text("HELLO", version_one_options(ErrorCorrectionLevel::High)).expect("encodes");
+        let mut modules = code.modules().clone();
+
+        for codeword in [0, 2, 4] {
+            flip_codeword_bit(&mut modules, code.version(), codeword, 0);
+        }
+
+        let decoded = decode_modules(&modules).expect("corrects damaged data codewords");
+        assert_eq!(decoded.text.as_deref(), Some("HELLO"));
+    }
+
+    #[test]
+    fn decodes_with_correctable_ecc_codeword_damage() {
+        let code =
+            encode_text("HELLO", version_one_options(ErrorCorrectionLevel::High)).expect("encodes");
+        let mut modules = code.modules().clone();
+        let first_ecc_codeword = num_data_codewords(code.version(), code.error_correction());
+
+        for codeword in first_ecc_codeword..first_ecc_codeword + 3 {
+            flip_codeword_bit(&mut modules, code.version(), codeword, 0);
+        }
+
+        let decoded = decode_modules(&modules).expect("corrects damaged ecc codewords");
+        assert_eq!(decoded.text.as_deref(), Some("HELLO"));
+    }
+
+    #[test]
+    fn decodes_with_correctable_damage_across_interleaved_blocks() {
+        let version = Version::new(4).expect("valid version");
+        let code = encode_text(
+            "INTERLEAVED BLOCKS",
+            fixed_version_options(version, ErrorCorrectionLevel::High),
+        )
+        .expect("encodes");
+        let mut modules = code.modules().clone();
+
+        for codeword in 0..4 {
+            flip_codeword_bit(&mut modules, code.version(), codeword, 0);
+        }
+
+        let decoded = decode_modules(&modules).expect("corrects damaged interleaved blocks");
+        assert_eq!(decoded.text.as_deref(), Some("INTERLEAVED BLOCKS"));
     }
 }

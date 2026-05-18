@@ -85,7 +85,7 @@ export function bytesToHex(bytes: Uint8Array): string {
   const hex = "0123456789abcdef";
   let out = "";
   for (let index = 0; index < bytes.length; index += 1) {
-    const value = bytes[index];
+    const value = bytes[index] ?? 0;
     out += hex[(value >> 4) & 0x0f];
     out += hex[value & 0x0f];
   }

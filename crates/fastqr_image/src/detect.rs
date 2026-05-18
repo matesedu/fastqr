@@ -401,21 +401,70 @@ pub(crate) fn sample_qr_grid(
     bottom_right: Point,
     dimension: usize,
 ) -> Result<BitGrid, RasterError> {
+    sample_qr_grid_from_correspondences(
+        binary,
+        dimension,
+        &[
+            (3.5, 3.5, top_left.x, top_left.y),
+            (dimension as f32 - 3.5, 3.5, top_right.x, top_right.y),
+            (3.5, dimension as f32 - 3.5, bottom_left.x, bottom_left.y),
+            (
+                dimension as f32 - 3.5,
+                dimension as f32 - 3.5,
+                bottom_right.x,
+                bottom_right.y,
+            ),
+        ],
+    )
+}
+
+pub(crate) fn sample_detected_qr_grid(
+    binary: &BinaryImage,
+    top_left: Point,
+    top_right: Point,
+    bottom_left: Point,
+    dimension: usize,
+) -> Result<BitGrid, RasterError> {
+    if let Some((_, alignment)) =
+        find_bottom_right_alignment(binary, top_left, top_right, bottom_left, dimension)
+    {
+        let alignment_center = dimension as f32 - 6.5;
+        return sample_qr_grid_from_correspondences(
+            binary,
+            dimension,
+            &[
+                (3.5, 3.5, top_left.x, top_left.y),
+                (dimension as f32 - 3.5, 3.5, top_right.x, top_right.y),
+                (3.5, dimension as f32 - 3.5, bottom_left.x, bottom_left.y),
+                (alignment_center, alignment_center, alignment.x, alignment.y),
+            ],
+        );
+    }
+
+    let bottom_right = Point {
+        x: top_right.x + bottom_left.x - top_left.x,
+        y: top_right.y + bottom_left.y - top_left.y,
+    };
+    sample_qr_grid(
+        binary,
+        top_left,
+        top_right,
+        bottom_left,
+        bottom_right,
+        dimension,
+    )
+}
+
+fn sample_qr_grid_from_correspondences(
+    binary: &BinaryImage,
+    dimension: usize,
+    correspondences: &[(f32, f32, f32, f32); 4],
+) -> Result<BitGrid, RasterError> {
     if dimension < 21 || !(dimension - 17).is_multiple_of(4) {
         return Err(RasterError::Detector("detected QR dimension is not valid"));
     }
 
-    let transform = solve_homography(&[
-        (3.5, 3.5, top_left.x, top_left.y),
-        (dimension as f32 - 3.5, 3.5, top_right.x, top_right.y),
-        (3.5, dimension as f32 - 3.5, bottom_left.x, bottom_left.y),
-        (
-            dimension as f32 - 3.5,
-            dimension as f32 - 3.5,
-            bottom_right.x,
-            bottom_right.y,
-        ),
-    ])?;
+    let transform = solve_homography(correspondences)?;
 
     let mut grid = BitGrid::new(dimension);
     for y in 0..dimension {
@@ -436,6 +485,138 @@ pub(crate) fn sample_qr_grid(
         }
     }
     Ok(grid)
+}
+
+#[cfg(test)]
+pub(crate) fn estimate_bottom_right(
+    binary: &BinaryImage,
+    top_left: Point,
+    top_right: Point,
+    bottom_left: Point,
+    dimension: usize,
+) -> Point {
+    let fallback = Point {
+        x: top_right.x + bottom_left.x - top_left.x,
+        y: top_right.y + bottom_left.y - top_left.y,
+    };
+    let Some((expected_alignment, alignment)) =
+        find_bottom_right_alignment(binary, top_left, top_right, bottom_left, dimension)
+    else {
+        return fallback;
+    };
+
+    Point {
+        x: fallback.x + alignment.x - expected_alignment.x,
+        y: fallback.y + alignment.y - expected_alignment.y,
+    }
+}
+
+fn find_bottom_right_alignment(
+    binary: &BinaryImage,
+    top_left: Point,
+    top_right: Point,
+    bottom_left: Point,
+    dimension: usize,
+) -> Option<(Point, Point)> {
+    if dimension == 21 {
+        return None;
+    }
+
+    let finder_span = dimension as f32 - 7.0;
+    if finder_span <= 0.0 {
+        return None;
+    }
+    let x_axis = Point {
+        x: (top_right.x - top_left.x) / finder_span,
+        y: (top_right.y - top_left.y) / finder_span,
+    };
+    let y_axis = Point {
+        x: (bottom_left.x - top_left.x) / finder_span,
+        y: (bottom_left.y - top_left.y) / finder_span,
+    };
+    let alignment_offset = dimension as f32 - 10.0;
+    let expected_alignment = Point {
+        x: top_left.x + x_axis.x * alignment_offset + y_axis.x * alignment_offset,
+        y: top_left.y + x_axis.y * alignment_offset + y_axis.y * alignment_offset,
+    };
+    let module_size = ((x_axis.x * x_axis.x + x_axis.y * x_axis.y).sqrt()
+        + (y_axis.x * y_axis.x + y_axis.y * y_axis.y).sqrt())
+        / 2.0;
+    let alignment = find_alignment_center(binary, expected_alignment, x_axis, y_axis, module_size)?;
+    Some((expected_alignment, alignment))
+}
+
+fn find_alignment_center(
+    binary: &BinaryImage,
+    expected: Point,
+    x_axis: Point,
+    y_axis: Point,
+    module_size: f32,
+) -> Option<Point> {
+    if module_size < 1.0 {
+        return None;
+    }
+    let radius = (module_size * 3.0).ceil().max(6.0) as isize;
+    let expected_x = expected.x.round() as isize;
+    let expected_y = expected.y.round() as isize;
+    let mut best = None;
+    let mut best_score = usize::MAX;
+    let mut best_distance = f32::MAX;
+
+    for y in expected_y - radius..=expected_y + radius {
+        for x in expected_x - radius..=expected_x + radius {
+            if x < 0 || y < 0 || x >= binary.width as isize || y >= binary.height as isize {
+                continue;
+            }
+            let center = Point {
+                x: x as f32,
+                y: y as f32,
+            };
+            let Some(score) = alignment_pattern_score(binary, center, x_axis, y_axis) else {
+                continue;
+            };
+            let distance = squared_distance(center, expected);
+            if score < best_score || (score == best_score && distance < best_distance) {
+                best_score = score;
+                best_distance = distance;
+                best = Some(center);
+            }
+        }
+    }
+
+    (best_score <= 5).then_some(best?)
+}
+
+fn alignment_pattern_score(
+    binary: &BinaryImage,
+    center: Point,
+    x_axis: Point,
+    y_axis: Point,
+) -> Option<usize> {
+    let mut mismatches = 0_usize;
+    for y in -2_i32..=2 {
+        for x in -2_i32..=2 {
+            let sample = Point {
+                x: center.x + x_axis.x * x as f32 + y_axis.x * y as f32,
+                y: center.y + x_axis.y * x as f32 + y_axis.y * y as f32,
+            };
+            let sample_x = sample.x.round() as isize;
+            let sample_y = sample.y.round() as isize;
+            if sample_x < 0
+                || sample_y < 0
+                || sample_x >= binary.width as isize
+                || sample_y >= binary.height as isize
+            {
+                return None;
+            }
+            let ring = x.abs().max(y.abs());
+            let expected_dark = ring == 0 || ring == 2;
+            if binary.get(sample_x as usize, sample_y as usize) != expected_dark {
+                mismatches += 1;
+            }
+        }
+    }
+    Some(mismatches)
 }
 
 fn solve_homography(correspondences: &[(f32, f32, f32, f32); 4]) -> Result<[f32; 8], RasterError> {

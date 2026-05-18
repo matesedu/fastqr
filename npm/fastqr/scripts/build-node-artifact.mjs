@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -7,8 +7,10 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(scriptDir, "../../..");
 const packageDir = resolve(rootDir, "npm/fastqr");
 const nativeDir = resolve(packageDir, "native");
+const manifestPath = resolve(rootDir, "crates/fastqr_napi/Cargo.toml");
+const platformTag = `${process.platform}-${process.arch}`;
 
-const cargo = spawnSync("cargo", ["build", "-p", "fastqr-napi", "--release"], {
+const cargo = spawnSync("cargo", ["build", "--manifest-path", manifestPath, "--release"], {
   cwd: rootDir,
   stdio: "inherit",
   shell: process.platform === "win32",
@@ -29,5 +31,6 @@ if (!existsSync(sourceFile)) {
   throw new Error(`native artifact was not produced: ${sourceFile}`);
 }
 
-mkdirSync(nativeDir, { recursive: true });
-cpSync(sourceFile, resolve(nativeDir, "fastqr-napi.node"));
+rmSync(nativeDir, { recursive: true, force: true });
+mkdirSync(resolve(nativeDir, platformTag), { recursive: true });
+cpSync(sourceFile, resolve(nativeDir, platformTag, "fastqr-napi.node"));

@@ -121,7 +121,7 @@ export default defineConfig({
       },
       "workspace:build": {
         command:
-          "vp run rust:build && vp run fastqr#build-node && vp run browser:build && vp run playground:build",
+          "vp run rust:build && vp run fastqr#build-node && vp run browser:build && vp run playground:build && vp run fastqr#pack-smoke && vp run @fastqr/vue#pack-smoke",
         env: ["NODE_ENV", "RUSTFLAGS", "VITE_*", "PAGES_BASE_PATH"],
         input: [{ auto: true }, "!target/**"],
       },

@@ -52,7 +52,8 @@
     "task:build": "vp run build",
     "task:build-node": "vp run build-node",
     "task:build-browser": "vp run build-browser",
-    "task:check": "vp run check"
+    "task:check": "vp run check",
+    "task:package-smoke": "node ./scripts/check-package-artifacts.mjs --node --browser"
   },
   "devDependencies": {
     "vite-plus": "latest"

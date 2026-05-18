@@ -1,24 +1,31 @@
-use std::{fs, path::Path};
+use std::{fs, io::Cursor, path::Path};
 
 use fastqr_core::{DecodedQr, decode_modules};
-use image::DynamicImage;
+use image::{DynamicImage, ImageReader};
 
 use crate::{
     DecodeOptions, RasterError, RasterFormat,
     binary::{BinaryImage, binarize},
-    detect::{Point, locate, sample_pure_qr, sample_qr_grid},
+    detect::{locate, sample_detected_qr_grid, sample_pure_qr},
     format::{infer_format, raster_format_to_image_format},
 };
 
 pub fn decode_file<P: AsRef<Path>>(path: P) -> Result<DecodedQr, RasterError> {
+    decode_file_with_options(path, DecodeOptions::default())
+}
+
+pub fn decode_file_with_options<P: AsRef<Path>>(
+    path: P,
+    options: DecodeOptions,
+) -> Result<DecodedQr, RasterError> {
     let path = path.as_ref();
     let bytes = fs::read(path).map_err(image::ImageError::IoError)?;
     let format = infer_format(path)?;
-    decode_bytes_with_format(&bytes, format, DecodeOptions::default())
+    decode_bytes_with_format(&bytes, format, options)
 }
 
 pub fn decode_bytes(bytes: &[u8], options: DecodeOptions) -> Result<DecodedQr, RasterError> {
-    let image = image::load_from_memory(bytes)?;
+    let image = load_image_from_memory(bytes, None, options)?;
     decode_dynamic_image(&image, options)
 }
 
@@ -27,7 +34,8 @@ pub fn decode_bytes_with_format(
     format: RasterFormat,
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    let image = image::load_from_memory_with_format(bytes, raster_format_to_image_format(format))?;
+    let image =
+        load_image_from_memory(bytes, Some(raster_format_to_image_format(format)), options)?;
     decode_dynamic_image(&image, options)
 }
 
@@ -35,6 +43,7 @@ pub fn decode_dynamic_image(
     image: &DynamicImage,
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
+    checked_decode_pixel_len(image.width() as usize, image.height() as usize, options)?;
     match image {
         DynamicImage::ImageLuma8(image) => decode_luma(
             image.width() as usize,
@@ -78,7 +87,7 @@ pub fn decode_rgba(
     rgba: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    let pixel_len = checked_raster_len(width, height, 1)?;
+    let pixel_len = checked_decode_pixel_len(width, height, options)?;
     let expected_len = checked_raster_len(width, height, 4)?;
     if rgba.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
@@ -100,7 +109,7 @@ fn decode_rgb(
     rgb: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    let pixel_len = checked_raster_len(width, height, 1)?;
+    let pixel_len = checked_decode_pixel_len(width, height, options)?;
     let expected_len = checked_raster_len(width, height, 3)?;
     if rgb.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
@@ -119,7 +128,7 @@ fn decode_luma_alpha(
     luma_alpha: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    let pixel_len = checked_raster_len(width, height, 1)?;
+    let pixel_len = checked_decode_pixel_len(width, height, options)?;
     let expected_len = checked_raster_len(width, height, 2)?;
     if luma_alpha.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
@@ -138,23 +147,86 @@ pub fn decode_luma(
     luma: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    let expected_len = checked_raster_len(width, height, 1)?;
+    let expected_len = checked_decode_pixel_len(width, height, options)?;
     if luma.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
     }
     let binary = binarize(width, height, luma);
-    if let Ok(decoded) = decode_binary(&binary) {
-        return Ok(decoded);
+    let mut sampled_error = None;
+    match decode_binary(&binary) {
+        Ok(decoded) => return Ok(decoded),
+        Err(RasterError::Qr(error)) => sampled_error = Some(error),
+        Err(_) => {}
     }
     if options.try_invert {
         let inverted = binary.into_inverted();
-        if let Ok(decoded) = decode_binary(&inverted) {
-            return Ok(decoded);
+        match decode_binary(&inverted) {
+            Ok(decoded) => return Ok(decoded),
+            Err(RasterError::Qr(error)) => {
+                if sampled_error.is_none() {
+                    sampled_error = Some(error);
+                }
+            }
+            Err(_) => {}
         }
+    }
+    if let Some(error) = sampled_error {
+        return Err(RasterError::Qr(error));
     }
     Err(RasterError::Detector(
         "unable to locate a QR code in the image",
     ))
+}
+
+fn load_image_from_memory(
+    bytes: &[u8],
+    format: Option<image::ImageFormat>,
+    options: DecodeOptions,
+) -> Result<DynamicImage, RasterError> {
+    let cursor = Cursor::new(bytes);
+    let mut reader = if let Some(format) = format {
+        ImageReader::with_format(cursor, format)
+    } else {
+        ImageReader::new(cursor)
+            .with_guessed_format()
+            .map_err(image::ImageError::IoError)?
+    };
+    reader.limits(image_decode_limits(options)?);
+
+    let image = reader.decode()?;
+    checked_decode_pixel_len(image.width() as usize, image.height() as usize, options)?;
+    Ok(image)
+}
+
+fn image_decode_limits(options: DecodeOptions) -> Result<image::Limits, RasterError> {
+    let Some(max_pixels) = options.max_pixels else {
+        return Ok(image::Limits::no_limits());
+    };
+
+    let max_alloc = max_pixels
+        .checked_mul(4)
+        .and_then(|bytes| u64::try_from(bytes).ok())
+        .ok_or(RasterError::InvalidDimensions)?;
+    let max_side = max_pixels.min(u32::MAX as usize) as u32;
+    let mut limits = image::Limits::default();
+    limits.max_image_width = Some(max_side);
+    limits.max_image_height = Some(max_side);
+    limits.max_alloc = Some(max_alloc);
+    Ok(limits)
+}
+
+fn checked_decode_pixel_len(
+    width: usize,
+    height: usize,
+    options: DecodeOptions,
+) -> Result<usize, RasterError> {
+    let pixels = checked_raster_len(width, height, 1)?;
+    if let Some(max_pixels) = options.max_pixels
+        && pixels > max_pixels
+    {
+        return Err(RasterError::InvalidDimensions);
+    }
+    Ok(pixels)
 }
 
 fn checked_raster_len(width: usize, height: usize, channels: usize) -> Result<usize, RasterError> {
@@ -168,23 +240,34 @@ fn checked_raster_len(width: usize, height: usize, channels: usize) -> Result<us
 }
 
 fn decode_binary(binary: &BinaryImage) -> Result<DecodedQr, RasterError> {
-    if let Ok(sampled) = sample_pure_qr(binary)
-        && let Ok(decoded) = decode_modules(&sampled)
-    {
-        return Ok(decoded);
+    let mut sampled_error = None;
+    if let Ok(sampled) = sample_pure_qr(binary) {
+        match decode_modules(&sampled) {
+            Ok(decoded) => return Ok(decoded),
+            Err(error) => sampled_error = Some(error),
+        }
     }
-    let (top_left, top_right, bottom_left, dimension) = locate(binary)?;
-    let bottom_right = Point {
-        x: top_right.x + bottom_left.x - top_left.x,
-        y: top_right.y + bottom_left.y - top_left.y,
+    let (top_left, top_right, bottom_left, dimension) = match locate(binary) {
+        Ok(located) => located,
+        Err(error) => {
+            return if let Some(error) = sampled_error {
+                Err(RasterError::Qr(error))
+            } else {
+                Err(error)
+            };
+        }
     };
-    let sampled = sample_qr_grid(
-        binary,
-        top_left,
-        top_right,
-        bottom_left,
-        bottom_right,
-        dimension,
-    )?;
-    Ok(decode_modules(&sampled)?)
+    match sample_detected_qr_grid(binary, top_left, top_right, bottom_left, dimension) {
+        Ok(sampled) => match decode_modules(&sampled) {
+            Ok(decoded) => Ok(decoded),
+            Err(error) => Err(RasterError::Qr(error)),
+        },
+        Err(error) => {
+            if let Some(error) = sampled_error {
+                Err(RasterError::Qr(error))
+            } else {
+                Err(error)
+            }
+        }
+    }
 }

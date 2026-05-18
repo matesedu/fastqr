@@ -39,7 +39,7 @@ export const summarizeQr = (code: BrowserQrCode | null): RenderSummary => {
   const modules = code.modules();
   let darkModules = 0;
   for (let index = 0; index < modules.length; index += 1) {
-    darkModules += modules[index];
+    darkModules += modules[index] ?? 0;
   }
 
   return {

@@ -8,7 +8,9 @@ const packageDir = dirname(fileURLToPath(import.meta.url));
 const packageInputs = [
   "README.md",
   "package.json",
+  "scripts/**/*.mjs",
   "src/**",
+  "tsconfig.build.json",
   "tsconfig.json",
   "vite.config.ts",
   "!dist/**",
@@ -38,7 +40,7 @@ export default defineConfig({
   run: {
     tasks: {
       check: {
-        command: "vp check",
+        command: "vp check && tsc --noEmit --pretty false",
         input: packageInputs,
       },
       fmt: {
@@ -46,8 +48,13 @@ export default defineConfig({
         input: packageInputs,
       },
       build: {
-        command: "vp build",
+        command: "vp build && tsc --project tsconfig.build.json --pretty false",
         dependsOn: ["check"],
+        input: packageInputs,
+      },
+      "pack-smoke": {
+        command: "node ./scripts/check-package-artifacts.mjs",
+        dependsOn: ["build"],
         input: packageInputs,
       },
     },
