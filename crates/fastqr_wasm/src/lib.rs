@@ -37,7 +37,7 @@ impl WasmQrCode {
     }
 
     #[wasm_bindgen(js_name = "renderRgba")]
-    pub fn render_rgba(&self, scale: u32, border: u32) -> Uint8Array {
+    pub fn render_rgba(&self, scale: u32, border: u32) -> Result<Uint8Array, JsValue> {
         let rgba = render_to_rgba(
             &self.inner,
             RenderOptions {
@@ -45,8 +45,9 @@ impl WasmQrCode {
                 border,
                 ..RenderOptions::default()
             },
-        );
-        Uint8Array::from(rgba.as_slice())
+        )
+        .map_err(to_js_error)?;
+        Ok(Uint8Array::from(rgba.as_slice()))
     }
 
     #[wasm_bindgen(js_name = "renderSvg")]
@@ -88,7 +89,7 @@ pub fn render_to_canvas(
     border: u32,
 ) -> Result<(), JsValue> {
     let code = encode_text(text, EncodeOptions::default()).map_err(to_js_error)?;
-    let size = (code.size() as u32 + border * 2) * scale;
+    let size = checked_canvas_size(code.size(), scale, border)?;
     canvas.set_width(size);
     canvas.set_height(size);
     let context = canvas_context_2d(&canvas)?;
@@ -99,7 +100,8 @@ pub fn render_to_canvas(
             border,
             ..RenderOptions::default()
         },
-    );
+    )
+    .map_err(to_js_error)?;
     let data = ImageData::new_with_u8_clamped_array_and_sh(Clamped(&rgba), size, size)?;
     context.put_image_data(&data, 0.0, 0.0)?;
     Ok(())
@@ -142,6 +144,22 @@ fn canvas_context_2d(canvas: &HtmlCanvasElement) -> Result<CanvasRenderingContex
         .get_context("2d")?
         .ok_or_else(|| JsValue::from_str("2D canvas context is unavailable"))?;
     Ok(context.dyn_into::<CanvasRenderingContext2d>()?)
+}
+
+fn checked_canvas_size(modules: usize, scale: u32, border: u32) -> Result<u32, JsValue> {
+    if scale == 0 {
+        return Err(JsValue::from_str("render scale must be greater than zero"));
+    }
+    let side = modules
+        .checked_add(
+            usize::try_from(border)
+                .map_err(|_| JsValue::from_str("render border is too large"))?
+                .checked_mul(2)
+                .ok_or_else(|| JsValue::from_str("render border is too large"))?,
+        )
+        .and_then(|modules| modules.checked_mul(scale as usize))
+        .ok_or_else(|| JsValue::from_str("render dimensions are too large"))?;
+    u32::try_from(side).map_err(|_| JsValue::from_str("render dimensions are too large"))
 }
 
 fn decoded_to_js(decoded: fastqr_core::DecodedQr) -> Result<JsValue, JsValue> {

@@ -78,10 +78,12 @@ pub fn decode_rgba(
     rgba: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    if rgba.len() != width * height * 4 {
+    let pixel_len = checked_raster_len(width, height, 1)?;
+    let expected_len = checked_raster_len(width, height, 4)?;
+    if rgba.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
     }
-    let mut luma = vec![0_u8; width * height];
+    let mut luma = vec![0_u8; pixel_len];
     for (pixel, chunk) in luma.iter_mut().zip(rgba.chunks_exact(4)) {
         let alpha = u16::from(chunk[3]);
         let red = (u16::from(chunk[0]) * alpha + 255 * (255 - alpha)) / 255;
@@ -98,10 +100,12 @@ fn decode_rgb(
     rgb: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    if rgb.len() != width * height * 3 {
+    let pixel_len = checked_raster_len(width, height, 1)?;
+    let expected_len = checked_raster_len(width, height, 3)?;
+    if rgb.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
     }
-    let mut luma = vec![0_u8; width * height];
+    let mut luma = vec![0_u8; pixel_len];
     for (pixel, chunk) in luma.iter_mut().zip(rgb.chunks_exact(3)) {
         *pixel = ((u16::from(chunk[0]) * 77 + u16::from(chunk[1]) * 150 + u16::from(chunk[2]) * 29)
             >> 8) as u8;
@@ -115,10 +119,12 @@ fn decode_luma_alpha(
     luma_alpha: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    if luma_alpha.len() != width * height * 2 {
+    let pixel_len = checked_raster_len(width, height, 1)?;
+    let expected_len = checked_raster_len(width, height, 2)?;
+    if luma_alpha.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
     }
-    let mut luma = vec![0_u8; width * height];
+    let mut luma = vec![0_u8; pixel_len];
     for (pixel, chunk) in luma.iter_mut().zip(luma_alpha.chunks_exact(2)) {
         let alpha = u16::from(chunk[1]);
         *pixel = ((u16::from(chunk[0]) * alpha + 255 * (255 - alpha)) / 255) as u8;
@@ -132,7 +138,8 @@ pub fn decode_luma(
     luma: &[u8],
     options: DecodeOptions,
 ) -> Result<DecodedQr, RasterError> {
-    if luma.len() != width * height {
+    let expected_len = checked_raster_len(width, height, 1)?;
+    if luma.len() != expected_len {
         return Err(RasterError::InvalidBuffer);
     }
     let binary = binarize(width, height, luma);
@@ -148,6 +155,16 @@ pub fn decode_luma(
     Err(RasterError::Detector(
         "unable to locate a QR code in the image",
     ))
+}
+
+fn checked_raster_len(width: usize, height: usize, channels: usize) -> Result<usize, RasterError> {
+    if width == 0 || height == 0 {
+        return Err(RasterError::InvalidDimensions);
+    }
+    width
+        .checked_mul(height)
+        .and_then(|pixels| pixels.checked_mul(channels))
+        .ok_or(RasterError::InvalidDimensions)
 }
 
 fn decode_binary(binary: &BinaryImage) -> Result<DecodedQr, RasterError> {

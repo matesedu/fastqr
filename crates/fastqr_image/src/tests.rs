@@ -26,7 +26,7 @@ fn rgba_roundtrip() {
         border: 4,
         ..RenderOptions::default()
     };
-    let rgba = render_to_rgba(&code, render);
+    let rgba = render_to_rgba(&code, render).expect("renders");
     let size = (code.size() as u32 + render.border * 2) * render.scale;
     let decoded = decode_rgba(
         size as usize,
@@ -46,7 +46,7 @@ fn rgba_roundtrip_larger_version() {
         border: 4,
         ..RenderOptions::default()
     };
-    let rgba = render_to_rgba(&code, render);
+    let rgba = render_to_rgba(&code, render).expect("renders");
     let size = (code.size() as u32 + render.border * 2) * render.scale;
     let decoded = decode_rgba(
         size as usize,
@@ -66,7 +66,7 @@ fn pure_sampler_matches_rendered_grid() {
         border: 4,
         ..RenderOptions::default()
     };
-    let rgba = render_to_rgba(&code, render);
+    let rgba = render_to_rgba(&code, render).expect("renders");
     let size = (code.size() as u32 + render.border * 2) * render.scale;
     let mut luma = vec![0_u8; size as usize * size as usize];
     for (pixel, rgba) in luma.iter_mut().zip(rgba.chunks_exact(4)) {
@@ -80,4 +80,38 @@ fn pure_sampler_matches_rendered_grid() {
             assert_eq!(sampled.get(x, y), code.module(x, y), "mismatch at {x},{y}");
         }
     }
+}
+
+#[test]
+fn rejects_decode_dimensions_that_overflow() {
+    let error = decode_rgba(usize::MAX, 2, &[], DecodeOptions::default()).expect_err("rejects");
+    assert!(matches!(error, crate::RasterError::InvalidDimensions));
+}
+
+#[test]
+fn rejects_zero_render_scale() {
+    let code = encode_text("fastqr image dimensions", EncodeOptions::default()).expect("encodes");
+    let error = render_to_rgba(
+        &code,
+        RenderOptions {
+            scale: 0,
+            ..RenderOptions::default()
+        },
+    )
+    .expect_err("rejects");
+    assert!(matches!(error, crate::RasterError::InvalidDimensions));
+}
+
+#[test]
+fn rejects_render_dimensions_above_safe_limit() {
+    let code = encode_text("fastqr image dimensions", EncodeOptions::default()).expect("encodes");
+    let error = render_to_rgba(
+        &code,
+        RenderOptions {
+            border: 20_000,
+            ..RenderOptions::default()
+        },
+    )
+    .expect_err("rejects");
+    assert!(matches!(error, crate::RasterError::InvalidDimensions));
 }

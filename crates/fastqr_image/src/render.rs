@@ -8,6 +8,8 @@ use crate::{
     format::{infer_format, raster_format_to_image_format},
 };
 
+const MAX_PIXELS_PER_SIDE: usize = 16_384;
+
 pub fn encode_text_to_image(
     text: &str,
     render: RenderOptions,
@@ -28,17 +30,19 @@ pub fn render_to_image(
     code: &QrCode,
     render: RenderOptions,
 ) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, RasterError> {
-    let rgba = render_to_rgba(code, render);
-    let size = (code.size() as u32 + render.border * 2) * render.scale;
+    let dimensions = render_dimensions(code, render)?;
+    let rgba = render_to_rgba(code, render)?;
+    let size =
+        u32::try_from(dimensions.pixels_per_side).map_err(|_| RasterError::InvalidDimensions)?;
     ImageBuffer::from_vec(size, size, rgba).ok_or(RasterError::InvalidBuffer)
 }
 
-pub fn render_to_rgba(code: &QrCode, render: RenderOptions) -> Vec<u8> {
-    let scale = render.scale as usize;
-    let border = render.border as usize;
-    let pixels_per_side = (code.size() + border * 2) * scale;
-    let stride = pixels_per_side * 4;
-    let mut rgba = vec![0_u8; pixels_per_side * stride];
+pub fn render_to_rgba(code: &QrCode, render: RenderOptions) -> Result<Vec<u8>, RasterError> {
+    let dimensions = render_dimensions(code, render)?;
+    let scale = dimensions.scale;
+    let border = dimensions.border;
+    let stride = dimensions.stride;
+    let mut rgba = vec![0_u8; dimensions.buffer_len];
     fill_rgba(&mut rgba, render.light);
 
     for y in 0..code.size() {
@@ -63,7 +67,7 @@ pub fn render_to_rgba(code: &QrCode, render: RenderOptions) -> Vec<u8> {
             rgba.copy_within(row_start..row_end, row_start + copy_row * stride);
         }
     }
-    rgba
+    Ok(rgba)
 }
 
 pub fn write_to_bytes(
@@ -102,4 +106,53 @@ fn fill_rgba(bytes: &mut [u8], rgba: [u8; 4]) {
         tail[..copy_len].copy_from_slice(&head[..copy_len]);
         filled += copy_len;
     }
+}
+
+struct RenderDimensions {
+    scale: usize,
+    border: usize,
+    pixels_per_side: usize,
+    stride: usize,
+    buffer_len: usize,
+}
+
+fn render_dimensions(
+    code: &QrCode,
+    render: RenderOptions,
+) -> Result<RenderDimensions, RasterError> {
+    let scale = usize::try_from(render.scale).map_err(|_| RasterError::InvalidDimensions)?;
+    if scale == 0 {
+        return Err(RasterError::InvalidDimensions);
+    }
+
+    let border = usize::try_from(render.border).map_err(|_| RasterError::InvalidDimensions)?;
+    let modules_per_side = code
+        .size()
+        .checked_add(
+            border
+                .checked_mul(2)
+                .ok_or(RasterError::InvalidDimensions)?,
+        )
+        .ok_or(RasterError::InvalidDimensions)?;
+    let pixels_per_side = modules_per_side
+        .checked_mul(scale)
+        .ok_or(RasterError::InvalidDimensions)?;
+    if pixels_per_side > MAX_PIXELS_PER_SIDE {
+        return Err(RasterError::InvalidDimensions);
+    }
+
+    let stride = pixels_per_side
+        .checked_mul(4)
+        .ok_or(RasterError::InvalidDimensions)?;
+    let buffer_len = pixels_per_side
+        .checked_mul(stride)
+        .ok_or(RasterError::InvalidDimensions)?;
+
+    Ok(RenderDimensions {
+        scale,
+        border,
+        pixels_per_side,
+        stride,
+        buffer_len,
+    })
 }
