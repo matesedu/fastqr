@@ -1,5 +1,6 @@
 [package]
 name = "fastqr-core"
+description = "Core QR encoding, decoding, masking, and Reed-Solomon primitives for fastqr"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true

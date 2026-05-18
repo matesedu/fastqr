@@ -1,5 +1,6 @@
 [package]
 name = "fastqr-wasm"
+description = "WebAssembly bindings for fastqr browser QR workflows"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -13,8 +14,8 @@ crate-type = ["cdylib", "rlib"]
 wasm-opt = false
 
 [dependencies]
-fastqr-core = { path = "../fastqr_core" }
-fastqr-image = { path = "../fastqr_image" }
+fastqr-core = { path = "../fastqr_core", version = "0.1.0" }
+fastqr-image = { path = "../fastqr_image", version = "0.1.0" }
 js-sys.workspace = true
 wasm-bindgen.workspace = true
 web-sys.workspace = true

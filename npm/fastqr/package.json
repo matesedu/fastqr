@@ -2,7 +2,23 @@
   "name": "fastqr",
   "version": "0.1.0",
   "description": "Rust-powered fastqr toolkit for Node.js and the browser",
+  "keywords": [
+    "barcode",
+    "napi",
+    "qr",
+    "qrcode",
+    "wasm"
+  ],
+  "homepage": "https://github.com/mates-dev/fastqr#readme",
+  "bugs": {
+    "url": "https://github.com/mates-dev/fastqr/issues"
+  },
   "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mates-dev/fastqr.git",
+    "directory": "npm/fastqr"
+  },
   "files": [
     "browser.d.ts",
     "browser.js",
