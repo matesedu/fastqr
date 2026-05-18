@@ -87,7 +87,7 @@ export function useFastqrCanvas(options: UseFastqrCanvasOptions) {
       const borderValue = normalizedBorder.value;
       const rgba = code.renderRgba(scaleValue, borderValue);
       const side = (code.size + borderValue * 2) * scaleValue;
-      const view = new Uint8ClampedArray(rgba.buffer, rgba.byteOffset, rgba.byteLength);
+      const view = Uint8ClampedArray.from(rgba);
 
       canvas.width = side;
       canvas.height = side;

@@ -3,11 +3,14 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const bindingPath = fileURLToPath(new URL("./native/fastqr-napi.node", import.meta.url));
+const platformTag = `${process.platform}-${process.arch}`;
+const bindingPath = fileURLToPath(
+  new URL(`./native/${platformTag}/fastqr-napi.node`, import.meta.url),
+);
 
 if (!existsSync(bindingPath)) {
   throw new Error(
-    "Native addon not found at npm/fastqr/native/fastqr-napi.node. Run `vp run fastqr#build-node` first.",
+    `Native addon for ${platformTag} was not found. This package uses platform-tagged prebuilds; reinstall fastqr for this platform or run \`vp run fastqr#build-node\` before packing.`,
   );
 }
 
@@ -20,4 +23,11 @@ export const renderWebp = binding.renderWebp;
 export const decodeImage = binding.decodeImage;
 export const decodeRgba = binding.decodeRgba;
 
-export default binding;
+export default Object.freeze({
+  decodeImage,
+  decodeRgba,
+  encodeText,
+  renderJpeg,
+  renderPng,
+  renderWebp,
+});

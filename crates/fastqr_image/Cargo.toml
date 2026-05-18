@@ -11,3 +11,7 @@ version.workspace = true
 fastqr-core = { path = "../fastqr_core", version = "0.1.0" }
 image.workspace = true
 smallvec.workspace = true
+
+[[bench]]
+name = "decode"
+harness = false

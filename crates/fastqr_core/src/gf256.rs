@@ -28,3 +28,25 @@ pub fn mul(left: u8, right: u8) -> u8 {
     }
     TABLES.0[usize::from(TABLES.1[left as usize]) + usize::from(TABLES.1[right as usize])]
 }
+
+#[inline]
+pub fn exp(power: usize) -> u8 {
+    TABLES.0[power % 255]
+}
+
+#[inline]
+pub fn div(left: u8, right: u8) -> u8 {
+    debug_assert_ne!(right, 0);
+    if left == 0 {
+        return 0;
+    }
+    let left_log = usize::from(TABLES.1[usize::from(left)]);
+    let right_log = usize::from(TABLES.1[usize::from(right)]);
+    TABLES.0[(left_log + 255 - right_log) % 255]
+}
+
+#[inline]
+pub fn inverse(value: u8) -> u8 {
+    debug_assert_ne!(value, 0);
+    TABLES.0[255 - usize::from(TABLES.1[usize::from(value)])]
+}

@@ -67,6 +67,12 @@ export default defineConfig({
         env: ["NODE_ENV", "RUSTFLAGS", "VITE_*"],
         input: [{ auto: true }, "!./native/**", "!./wasm/**", "!../../target/**"],
       },
+      "pack-smoke": {
+        command: "node ./scripts/check-package-artifacts.mjs --node --browser",
+        dependsOn: ["build"],
+        env: ["NODE_ENV"],
+        input: [{ auto: true }, "!../../target/**"],
+      },
     },
   },
 });

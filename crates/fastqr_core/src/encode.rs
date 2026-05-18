@@ -571,11 +571,23 @@ mod tests {
         let code = encode_text("FASTQR", EncodeOptions::default()).expect("encodes");
 
         for coordinate in 0..=6 {
-            assert!(code.module(coordinate, 6), "top-left finder bottom edge at ({coordinate}, 6)");
-            assert!(code.module(6, coordinate), "top-left finder right edge at (6, {coordinate})");
+            assert!(
+                code.module(coordinate, 6),
+                "top-left finder bottom edge at ({coordinate}, 6)"
+            );
+            assert!(
+                code.module(6, coordinate),
+                "top-left finder right edge at (6, {coordinate})"
+            );
         }
-        assert!(!code.module(7, 6), "separator next to top-left finder must stay light");
-        assert!(!code.module(6, 7), "separator below top-left finder must stay light");
+        assert!(
+            !code.module(7, 6),
+            "separator next to top-left finder must stay light"
+        );
+        assert!(
+            !code.module(6, 7),
+            "separator below top-left finder must stay light"
+        );
 
         let size = code.size();
         for coordinate in size - 7..size {
