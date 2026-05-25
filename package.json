@@ -7,7 +7,7 @@
     "url": "git+https://github.com/mates-dev/fastqr.git"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vite-plus": "latest"
   },
   "packageManager": "pnpm@10.16.1"
