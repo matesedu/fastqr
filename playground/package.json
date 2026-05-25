@@ -13,11 +13,11 @@
   "dependencies": {
     "@fastqr/vue": "workspace:*",
     "fastqr": "workspace:*",
-    "vue": "^3.5.20"
+    "vue": "^3.5.34"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.0",
-    "typescript": "^5.9.3",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "typescript": "^6.0.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@latest",
     "vite-plus": "latest"
   }
